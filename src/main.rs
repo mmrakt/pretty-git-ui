@@ -1,7 +1,9 @@
+const VERSION: &str = "0.1.0";
+
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use std::{
     error::Error,
@@ -10,12 +12,12 @@ use std::{
     time::{Duration, Instant},
 };
 use tui::{
-    Frame, Terminal,
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    Frame, Terminal,
 };
 
 enum InputMode {
@@ -38,7 +40,7 @@ impl App {
             files_state: ListState::default(),
             input_mode: InputMode::Normal,
             commit_message: String::new(),
-            status_message: String::from("Welcome to Git TUI"),
+            status_message: String::from(format!("Git TUI v{} - Welcome", VERSION)),
         };
         app.refresh_files();
         if !app.files.is_empty() {
@@ -47,6 +49,7 @@ impl App {
         app
     }
 
+    /// リポジトリの変更状態を取得し、表示用に整形
     fn refresh_files(&mut self) {
         let output = match Command::new("git").args(["status", "--porcelain"]).output() {
             Ok(output) => output,
@@ -100,12 +103,20 @@ impl App {
         if let Some(i) = self.files_state.selected() {
             if i < self.files.len() {
                 let file_status = &self.files[i];
-                if file_status.len() > 3 {
-                    let file_path = file_status[3..].trim();
+                // status行からパスを適切に抽出
+                if let Some(path_start) = file_status.find(' ') {
+                    let file_path = file_status[path_start..].trim();
 
-                    // ステージングまたはアンステージングを行う
-                    let is_staged = file_status.starts_with("M ") || file_status.starts_with("A ");
-                    let cmd = if is_staged { "reset" } else { "add" };
+                    // 状態によってコマンドを選択
+                    let (cmd, is_staged) =
+                        if file_status.starts_with("M ") || file_status.starts_with("A ") {
+                            ("reset", true)
+                        } else if file_status.starts_with(" M") || file_status.starts_with("??") {
+                            ("add", false)
+                        } else {
+                            self.status_message = format!("Unknown file status: {}", file_status);
+                            return;
+                        };
 
                     match Command::new("git").args([cmd, "--", file_path]).output() {
                         Ok(_) => {
@@ -116,8 +127,8 @@ impl App {
                             );
                             self.refresh_files();
                         }
-                        Err(_) => {
-                            self.status_message = format!("Failed to {} file", cmd);
+                        Err(e) => {
+                            self.status_message = format!("Failed to {} file: {}", cmd, e);
                         }
                     }
                 }
@@ -150,6 +161,25 @@ impl App {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "-v" | "--version" => {
+                println!("pretty-git-ui version {}", VERSION);
+                return Ok(());
+            }
+            "-h" | "--help" => {
+                print_help();
+                return Ok(());
+            }
+            _ => {
+                println!("Unknown option: {}", args[1]);
+                print_help();
+                return Ok(());
+            }
+        }
+    }
+
     // ターミナルのセットアップ
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -178,6 +208,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn print_help() {
+    println!("pretty-git-ui - A simple terminal UI for git");
+    println!("Usage: pretty-git-ui [OPTIONS]");
+    println!("Options:");
+    println!("  -h, --help     Show this help message");
+    println!("  -v, --version  Show version information");
+    println!("\nKeyboard shortcuts:");
+    println!("  q              Quit");
+    println!("  j/k or ↓/↑    Navigate files");
+    println!("  s              Stage/unstage selected file");
+    println!("  c              Enter commit mode");
+    println!("  r              Refresh file list");
+}
+
+/// イベントループで画面描画、入力処理、状態更新を行う
 fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
     mut app: App,
@@ -188,13 +233,16 @@ fn run_app<B: Backend>(
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
 
+        // タイムアウト計算
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
             .unwrap_or_else(|| Duration::from_secs(0));
 
+        // イベントのポーリング
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
                 match app.input_mode {
+                    // 通常モードのキー処理
                     InputMode::Normal => match key.code {
                         KeyCode::Char('q') => return Ok(()),
                         KeyCode::Char('j') => app.next(),
@@ -208,6 +256,7 @@ fn run_app<B: Backend>(
                         KeyCode::Char('r') => app.refresh_files(),
                         _ => {}
                     },
+                    // コミットモードのキー処理
                     InputMode::Commit => match key.code {
                         KeyCode::Esc => {
                             app.input_mode = InputMode::Normal;
@@ -227,12 +276,14 @@ fn run_app<B: Backend>(
             }
         }
 
+        // tickを更新
         if last_tick.elapsed() >= tick_rate {
             last_tick = Instant::now();
         }
     }
 }
 
+/// レイアウトの管理
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     // レイアウトの分割
     let chunks = Layout::default()
@@ -255,7 +306,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         Span::styled("s", Style::default().add_modifier(Modifier::BOLD)),
         Span::raw(" to stage/unstage, "),
         Span::styled("c", Style::default().add_modifier(Modifier::BOLD)),
-        Span::raw(" to commit"),
+        Span::raw(" to commit, "),
+        Span::styled("r", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw(" to refresh changed files"),
     ]))
     .block(Block::default().borders(Borders::ALL));
 
