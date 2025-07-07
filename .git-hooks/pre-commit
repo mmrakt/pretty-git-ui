@@ -1,0 +1,21 @@
+#!/bin/sh
+# Pre-commit hook for pretty-git-ui
+# Copy this file to .git/hooks/pre-commit and make it executable
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Check formatting
+echo "📝 Checking code formatting..."
+cargo fmt --all --check
+
+# Run clippy with strict settings
+echo "📎 Running clippy..."
+cargo clippy --all-targets --all-features -- -D warnings
+
+# Run tests
+echo "🧪 Running tests..."
+cargo test
+
+echo "✅ All pre-commit checks passed!"

@@ -1,0 +1,29 @@
+# Clippy configuration file
+# https://doc.rust-lang.org/clippy/configuration.html
+
+# Maximum allowed size for arrays on the stack
+array-size-threshold = 512000
+
+# The maximum size of an enum's variant to suggest boxing it
+enum-variant-size-threshold = 200
+
+# The maximum number of single char bindings a scope may have
+single-char-binding-names-threshold = 4
+
+# The maximum allowed size for a type parameter
+type-complexity-threshold = 250
+
+# Maximum number of arguments for function pointers
+too-many-arguments-threshold = 7
+
+# Maximum number of lines in a function
+too-many-lines-threshold = 100
+
+# Minimum rust version supported
+msrv = "1.70.0"
+
+# Files to avoid checking
+avoid-breaking-exported-api = true
+
+# Warn on functions with cognitive complexity exceeding this value
+cognitive-complexity-threshold = 30
