@@ -1,6 +1,6 @@
 # Pretty Git UI
 
-A beautiful terminal-based Git user interface built with Rust, providing an intuitive and efficient way to manage your Git workflow.
+A beautiful and user-friendly terminal-based Git user interface built with Rust, providing an intuitive and efficient way to manage your Git workflow. Now featuring improved UX with Japanese language support and streamlined interface design.
 
 ## Features
 
@@ -10,6 +10,9 @@ A beautiful terminal-based Git user interface built with Rust, providing an intu
 - **Stash Management**: Create, list, and apply stashes seamlessly
 - **Keyboard Navigation**: Efficient navigation without leaving your terminal
 - **Color-coded Status**: Visual indicators for staged, unstaged, and untracked files
+- **Japanese Language Support**: Full Japanese localization for improved accessibility
+- **Clean Interface**: Streamlined design focused on usability and readability
+- **Real-time Preview**: Automatic diff preview with side-by-side layout
 
 ## Installation
 
@@ -46,6 +49,7 @@ pretty-git-ui
 
 | Key | Action |
 |-----|--------|
+| `h` | Show inline help |
 | `q` | Quit application |
 | `j/k` or `↓/↑` | Navigate files |
 | `s` | Stage/unstage selected file |
@@ -55,6 +59,14 @@ pretty-git-ui
 | `l` | List stashes |
 | `p` | Apply latest stash |
 | `r` | Refresh file list |
+| `d` | Show diff preview (fullscreen) |
+| `v` | Toggle preview panel |
+
+#### Input Modes
+- **Commit/Stash Mode**: `Enter` to submit, `Esc` to cancel
+- **Confirmation Mode**: `y` to confirm, `n` or `Esc` to cancel  
+- **Preview Mode**: `j/k` or `↓/↑` to scroll, `q/Esc` to exit
+- **Preview Panel**: `Shift+j/k` to scroll preview, `v` to toggle
 
 ### Command Line Options
 
@@ -63,12 +75,23 @@ pretty-git-ui --help     # Show help information
 pretty-git-ui --version  # Show version information
 ```
 
-## Screenshots
+## Interface
 
-The interface features a clean three-panel layout:
-- **Status Bar**: Shows current mode and application information
-- **File List**: Displays files with color-coded status indicators
-- **Input Area**: Interactive area for commit messages and commands
+The interface features a clean, user-friendly three-panel layout:
+- **Status Bar**: Clean design showing repository name, current branch, and essential shortcuts
+- **File List**: Simplified display with clear Japanese status indicators
+- **Preview Panel**: Real-time diff preview with Unicode-safe rendering (toggle with `v`)
+- **Input Area**: Intuitive Japanese interface for commit messages and status feedback
+
+### UI/UX Improvements
+- ✓ **Japanese Localization**: Complete Japanese language support for all UI elements
+- ✓ **Simplified Design**: Removed complex ASCII art for better readability
+- ✓ **Smart Confirmations**: User-friendly confirmation prompts for bulk operations
+- ✓ **Visual Feedback**: Clear success indicators and error messages
+- ✓ **Enhanced Help System**: Press `h` for categorized, easy-to-read Japanese help screen
+- ✓ **Clean File Status**: Simplified file indicators without hexadecimal prefixes
+- ✓ **Auto Preview**: Automatically shows diff when selecting files
+- ✓ **Performance Optimized**: Removed unnecessary animations for faster response
 
 ## Development
 
@@ -138,6 +161,29 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 The Homebrew formula for this project is maintained separately at:
 https://github.com/mmrakt/homebrew-pretty-git-ui
+
+## Recent Updates (v0.1.1)
+
+### Major UX Improvements
+- 🎌 **Japanese Localization**: Complete Japanese language support for better accessibility
+- 🎨 **Simplified Interface**: Removed complex ASCII art and hexadecimal prefixes for cleaner look
+- 📖 **Enhanced Help System**: New Japanese help module with categorized keyboard shortcuts
+- ⚡ **Performance Optimization**: Removed unnecessary animations and matrix effects
+- 🎯 **User-Friendly Design**: Streamlined UI focusing on usability over aesthetics
+
+### Fixed Issues (v0.1.0)
+- ✅ Comprehensive git status parsing for all file formats
+- ✅ Missing keyboard shortcuts in documentation
+- ✅ Enhanced error handling and user feedback
+- ✅ UI consistency and visual improvements
+- ✅ Unicode character boundary safety fixes
+
+### Previous Features
+- 🆕 **Real-time diff preview** (automatic side panel + fullscreen mode)
+- 🆕 Repository and branch information display
+- 🆕 Smart confirmation dialogs for bulk operations
+- 🆕 Enhanced file status formatting
+- 🆕 Success indicators and improved error messages
 
 ## Acknowledgments
 

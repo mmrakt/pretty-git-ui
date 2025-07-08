@@ -115,33 +115,97 @@ The project includes several configuration files for code quality:
 ## Application Features
 
 ### Keyboard Shortcuts
+- `h`: Show inline help
 - `q`: Quit application
 - `j/k` or `↓/↑`: Navigate files
 - `s`: Stage/unstage selected file
-- `a`: Stage/unstage all files
+- `a`: Stage/unstage all files (with confirmation for large operations)
 - `c`: Enter commit mode
 - `t`: Enter stash message mode
 - `l`: List stashes
 - `p`: Apply latest stash
 - `r`: Refresh file list
+- `d`: Show diff preview (fullscreen)
+- `v`: Toggle preview panel
+
+### Input Modes
+- **Normal Mode**: Navigate and stage files
+- **Commit Mode**: Enter commit message (Enter to submit, Esc to cancel)
+- **Stash Mode**: Enter stash message (Enter to submit, Esc to cancel)
+- **Confirm Mode**: Confirm bulk operations (y/n)
+- **Preview Mode**: View file diffs fullscreen (j/k to scroll, q/Esc to exit)
+- **Preview Panel**: Side-by-side real-time preview (Shift+j/k to scroll, v to toggle)
 
 ### Command Line Interface
-- `--help/-h`: Show help information
+- `--help/-h`: Show comprehensive help information
 - `--version/-v`: Show version information
+
+### UI Improvements
+- **Repository info**: Shows current branch and repository name
+- **File status indicators**: Clear labels like [staged], [modified], [untracked]
+- **Operation feedback**: Success indicators (✓) and clear error messages
+- **File count display**: Shows number of changed files
+- **Smart confirmations**: Asks for confirmation on bulk operations (>5 files)
 
 ## Development Notes
 
 - **Code Quality**: Strict clippy configuration with pedantic lints enabled
 - **Testing**: Comprehensive unit and integration tests (64+ tests total)
-- **Error Handling**: All git operations have proper error handling
+- **Error Handling**: Enhanced error handling with descriptive messages
 - **Performance**: Static methods used where possible to avoid unnecessary allocations
 - **UI Updates**: Real-time updates based on git status changes
 - **Git Compatibility**: Requires a git repository to function properly
+- **User Experience**: Improved feedback, confirmations, and help system
+
+## Recent Improvements
+
+### Major UX Overhaul (v0.1.1)
+
+#### User Experience Improvements
+- 🎌 **Complete Japanese Localization**: All UI elements, messages, and help text translated to Japanese
+- 🎨 **Simplified Interface Design**: Removed complex ASCII art and decorative elements for better readability
+- 📖 **Modular Help System**: Created dedicated `ui_help.rs` module with categorized Japanese help
+- ⚡ **Performance Optimization**: Removed unnecessary animations, matrix effects, and frame counting
+- 🎯 **Clean File Display**: Eliminated hexadecimal prefixes and simplified file list presentation
+
+#### Technical Improvements
+- 🔧 **Code Modularity**: Separated help rendering into dedicated module for maintainability
+- 🛡️ **Unicode Safety**: Maintained all existing Unicode character boundary safety features
+- 🚀 **Reduced Complexity**: Simplified render functions and removed animation-related code
+- 📦 **Library Structure**: Updated module exports and dependencies
+
+#### UI Components Enhanced
+- **Status Bar**: Clean, minimal design with essential information only
+- **File List**: Simple numbering with clear Japanese status indicators
+- **Help System**: Comprehensive Japanese help with logical categorization
+- **Input Areas**: All prompts and titles converted to Japanese
+- **Preview Panel**: Simplified titles and better readability
+
+### Previous Features (v0.1.0)
+
+#### Fixed Issues
+- ✅ Git status parsing for all file state formats
+- ✅ Missing keyboard shortcuts in help documentation
+- ✅ Error handling and user feedback
+- ✅ UI consistency and visual indicators
+- ✅ Unicode character boundary safety fixes
+
+#### Enhanced Features
+- 🆕 Inline help system (press 'h')
+- 🆕 Repository and branch information display
+- 🆕 Smart confirmation dialogs for bulk operations
+- 🆕 **Real-time diff preview** - Automatic side panel + fullscreen mode
+- 🆕 **Enhanced help system** - Categorized, full-screen help interface
+- 🆕 Enhanced file status formatting with clear labels
+- 🆕 Success indicators and improved error messages
+- 🆕 Better visual feedback throughout the application
 
 ## Code Patterns
 
-- Git commands executed through static helper functions with error handling
+- Git commands executed through static helper functions with comprehensive error handling
 - UI rendering separated into focused functions for each panel
-- State transitions managed through the `InputMode` enum
-- File status parsing follows git's porcelain format specifications
+- State transitions managed through the enhanced `InputMode` enum (includes Confirm mode)
+- File status parsing follows git's porcelain format specifications with robust error handling
 - Modern Rust patterns: `?` operator, `match` expressions, iterator chains
+- User experience patterns: confirmation dialogs, inline help, visual feedback
+- Error recovery: graceful handling of git command failures with user-friendly messages

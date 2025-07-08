@@ -6,6 +6,21 @@ pub enum InputMode {
     Normal,
     Commit,
     StashMessage,
+    Confirm {
+        message: String,
+        action: ConfirmAction,
+    },
+    Preview {
+        content: String,
+        file_path: String,
+    },
+    Help,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConfirmAction {
+    StageAll,
+    UnstageAll,
 }
 
 #[derive(Debug)]
@@ -16,6 +31,12 @@ pub struct App {
     pub commit_message: String,
     pub stash_message: String,
     pub status_message: String,
+    pub current_branch: String,
+    pub repo_name: String,
+    pub preview_scroll: u16,
+    pub preview_content: String,
+    pub show_preview_panel: bool,
+    pub help_scroll: u16,
 }
 
 impl Default for App {
@@ -32,7 +53,16 @@ impl App {
             input_mode: InputMode::Normal,
             commit_message: String::new(),
             stash_message: String::new(),
-            status_message: String::from("pretty-git-ui v0.1.0 - Welcome"),
+            status_message: String::from(
+                "準備完了。[h]でヘルプ、[j/k]でファイル移動できます",
+            ),
+            current_branch: GitOperations::get_current_branch()
+                .unwrap_or_else(|_| "unknown".to_string()),
+            repo_name: GitOperations::get_repo_name().unwrap_or_else(|_| "repository".to_string()),
+            preview_scroll: 0,
+            preview_content: String::new(),
+            show_preview_panel: true,
+            help_scroll: 0,
         };
         app.refresh_files();
         if !app.files.is_empty() {
@@ -55,6 +85,10 @@ impl App {
                 self.status_message = format!("Error: {e}");
             },
         }
+        // Also refresh branch info
+        self.current_branch =
+            GitOperations::get_current_branch().unwrap_or_else(|_| "unknown".to_string());
+        self.update_preview();
     }
 
     pub fn next(&mut self) {
@@ -72,6 +106,7 @@ impl App {
             None => 0,
         };
         self.files_state.select(Some(i));
+        self.update_preview();
     }
 
     pub fn previous(&mut self) {
@@ -89,6 +124,7 @@ impl App {
             None => 0,
         };
         self.files_state.select(Some(i));
+        self.update_preview();
     }
 
     pub fn stage_file(&mut self) {
@@ -114,6 +150,31 @@ impl App {
             return;
         }
 
+        // Check if we need confirmation
+        let has_unstaged = self
+            .files
+            .iter()
+            .any(|f| f.len() >= 2 && f.chars().next().unwrap_or(' ').is_whitespace());
+
+        if has_unstaged && self.files.len() > 5 {
+            // Many files to stage, ask for confirmation
+            self.input_mode = InputMode::Confirm {
+                message: format!("Stage all {} files? (y/n)", self.files.len()),
+                action: ConfirmAction::StageAll,
+            };
+        } else if !has_unstaged && self.files.len() > 5 {
+            // Many files to unstage, ask for confirmation
+            self.input_mode = InputMode::Confirm {
+                message: format!("Unstage all {} files? (y/n)", self.files.len()),
+                action: ConfirmAction::UnstageAll,
+            };
+        } else {
+            // Proceed without confirmation for small numbers of files
+            self.execute_stage_all();
+        }
+    }
+
+    fn execute_stage_all(&mut self) {
         match GitOperations::stage_all_files(&self.files) {
             Ok(message) => {
                 self.status_message = message;
@@ -186,6 +247,136 @@ impl App {
             },
         }
     }
+
+    pub fn show_help(&mut self) {
+        self.input_mode = InputMode::Help;
+        self.help_scroll = 0;
+    }
+
+    pub fn exit_help(&mut self) {
+        self.input_mode = InputMode::Normal;
+        self.help_scroll = 0;
+    }
+
+    pub fn scroll_help_up(&mut self) {
+        if self.help_scroll > 0 {
+            self.help_scroll -= 1;
+        }
+    }
+
+    pub fn scroll_help_down(&mut self) {
+        self.help_scroll += 1;
+    }
+
+    pub fn handle_confirm(&mut self, confirmed: bool) {
+        if let InputMode::Confirm { action, .. } = &self.input_mode {
+            if confirmed {
+                match action {
+                    ConfirmAction::StageAll | ConfirmAction::UnstageAll => {
+                        self.execute_stage_all();
+                    },
+                }
+            } else {
+                self.status_message = String::from("Operation cancelled");
+            }
+            self.input_mode = InputMode::Normal;
+        }
+    }
+
+    pub fn show_preview(&mut self) {
+        if let Some(i) = self.files_state.selected() {
+            if i < self.files.len() {
+                let file_status = &self.files[i];
+                let chars: Vec<char> = file_status.chars().collect();
+                if chars.len() >= 3 {
+                    let file_path: String =
+                        chars.iter().skip(2).collect::<String>().trim().to_string();
+                    match GitOperations::get_file_diff(&file_path) {
+                        Ok(content) => {
+                            self.input_mode = InputMode::Preview {
+                                content,
+                                file_path: file_path.to_string(),
+                            };
+                            self.preview_scroll = 0;
+                        },
+                        Err(e) => {
+                            self.status_message = format!("Preview error: {}", e);
+                        },
+                    }
+                }
+            }
+        } else {
+            self.status_message = String::from("No file selected for preview");
+        }
+    }
+
+    pub fn scroll_preview_up(&mut self) {
+        if self.preview_scroll > 0 {
+            self.preview_scroll -= 1;
+        }
+    }
+
+    pub fn scroll_preview_down(&mut self) {
+        self.preview_scroll += 1;
+    }
+
+    pub fn exit_preview(&mut self) {
+        self.input_mode = InputMode::Normal;
+        self.preview_scroll = 0;
+    }
+
+    pub fn update_preview(&mut self) {
+        if !self.show_preview_panel {
+            return;
+        }
+
+        if let Some(i) = self.files_state.selected() {
+            if i < self.files.len() {
+                let file_status = &self.files[i];
+                let chars: Vec<char> = file_status.chars().collect();
+                if chars.len() >= 3 {
+                    let file_path: String =
+                        chars.iter().skip(2).collect::<String>().trim().to_string();
+                    match GitOperations::get_file_diff(&file_path) {
+                        Ok(content) => {
+                            self.preview_content = content;
+                        },
+                        Err(_) => {
+                            self.preview_content = "No preview available".to_string();
+                        },
+                    }
+                } else {
+                    self.preview_content = "Invalid file status".to_string();
+                }
+            } else {
+                self.preview_content = String::new();
+            }
+        } else {
+            self.preview_content = String::new();
+        }
+        self.preview_scroll = 0;
+    }
+
+    pub fn toggle_preview_panel(&mut self) {
+        self.show_preview_panel = !self.show_preview_panel;
+        if self.show_preview_panel {
+            self.update_preview();
+        }
+    }
+
+    pub fn get_current_file_path(&self) -> Option<String> {
+        if let Some(i) = self.files_state.selected() {
+            if i < self.files.len() {
+                let file_status = &self.files[i];
+                let chars: Vec<char> = file_status.chars().collect();
+                if chars.len() >= 3 {
+                    return Some(chars.iter().skip(2).collect::<String>().trim().to_string());
+                }
+            }
+        }
+        None
+    }
+
 }
 
 #[cfg(test)]
@@ -198,7 +389,7 @@ mod tests {
         assert_eq!(app.input_mode, InputMode::Normal);
         assert!(app.commit_message.is_empty());
         assert!(app.stash_message.is_empty());
-        assert!(app.status_message.contains("pretty-git-ui"));
+        assert!(app.status_message.contains("SYSTEM_INIT"));
     }
 
     #[test]

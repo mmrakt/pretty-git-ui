@@ -1,6 +1,7 @@
 mod app;
 mod git;
 mod ui;
+mod ui_help;
 
 use app::{App, InputMode};
 use crossterm::{
@@ -69,17 +70,32 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn print_help() {
-    println!("pretty-git-ui - A simple terminal UI for git");
-    println!("Usage: pretty-git-ui [OPTIONS]");
-    println!("Options:");
+    println!("pretty-git-ui - A beautiful terminal UI for Git");
+    println!("\nUsage: pretty-git-ui [OPTIONS]");
+    println!("\nOptions:");
     println!("  -h, --help     Show this help message");
     println!("  -v, --version  Show version information");
     println!("\nKeyboard shortcuts:");
-    println!("  q              Quit");
+    println!("  q              Quit application");
     println!("  j/k or ↓/↑    Navigate files");
     println!("  s              Stage/unstage selected file");
+    println!("  a              Stage/unstage all files");
     println!("  c              Enter commit mode");
+    println!("  t              Enter stash message mode");
+    println!("  l              List stashes");
+    println!("  p              Apply latest stash");
     println!("  r              Refresh file list");
+    println!("  d              Show diff preview (fullscreen)");
+    println!("  v              Toggle preview panel");
+    println!("\nIn commit/stash mode:");
+    println!("  Enter          Submit");
+    println!("  Esc            Cancel");
+    println!("\nIn preview mode:");
+    println!("  j/k or ↓/↑    Scroll preview");
+    println!("  q/Esc          Exit preview");
+    println!("\nWith preview panel:");
+    println!("  Shift+j/k      Scroll preview panel");
+    println!("  v              Toggle preview panel");
 }
 
 /// イベントループで画面描画、入力処理、状態更新を行う
@@ -88,7 +104,7 @@ fn run_app<B: Backend>(
     mut app: App,
     tick_rate: Duration,
 ) -> io::Result<()> {
-    let mut last_tick = Instant::now();
+    let last_tick = Instant::now();
 
     loop {
         terminal.draw(|f| render_ui(f, &mut app))?;
@@ -105,8 +121,36 @@ fn run_app<B: Backend>(
                     // 通常モードのキー処理
                     InputMode::Normal => match key.code {
                         KeyCode::Char('q') => return Ok(()),
-                        KeyCode::Char('j') | KeyCode::Down => app.next(),
-                        KeyCode::Char('k') | KeyCode::Up => app.previous(),
+                        KeyCode::Char('j') | KeyCode::Down => {
+                            if app.show_preview_panel {
+                                // Check if Shift is held for preview scroll
+                                if key
+                                    .modifiers
+                                    .contains(crossterm::event::KeyModifiers::SHIFT)
+                                {
+                                    app.scroll_preview_down();
+                                } else {
+                                    app.next();
+                                }
+                            } else {
+                                app.next();
+                            }
+                        },
+                        KeyCode::Char('k') | KeyCode::Up => {
+                            if app.show_preview_panel {
+                                // Check if Shift is held for preview scroll
+                                if key
+                                    .modifiers
+                                    .contains(crossterm::event::KeyModifiers::SHIFT)
+                                {
+                                    app.scroll_preview_up();
+                                } else {
+                                    app.previous();
+                                }
+                            } else {
+                                app.previous();
+                            }
+                        },
                         KeyCode::Char('s') => app.stage_file(),
                         KeyCode::Char('a') => app.stage_all_files(),
                         KeyCode::Char('c') => {
@@ -118,6 +162,9 @@ fn run_app<B: Backend>(
                         KeyCode::Char('l') => app.list_stashes(),
                         KeyCode::Char('p') => app.apply_latest_stash(),
                         KeyCode::Char('r') => app.refresh_files(),
+                        KeyCode::Char('h') => app.show_help(),
+                        KeyCode::Char('d') => app.show_preview(),
+                        KeyCode::Char('v') => app.toggle_preview_panel(),
                         _ => {},
                     },
                     // コミットモードのキー処理
@@ -153,13 +200,45 @@ fn run_app<B: Backend>(
                         },
                         _ => {},
                     },
+                    // Confirm mode key processing
+                    InputMode::Confirm { .. } => match key.code {
+                        KeyCode::Char('y') | KeyCode::Char('Y') => {
+                            app.handle_confirm(true);
+                        },
+                        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                            app.handle_confirm(false);
+                        },
+                        _ => {},
+                    },
+                    // Help mode key processing
+                    InputMode::Help => match key.code {
+                        KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('h') => {
+                            app.exit_help();
+                        },
+                        KeyCode::Char('j') | KeyCode::Down => {
+                            app.scroll_help_down();
+                        },
+                        KeyCode::Char('k') | KeyCode::Up => {
+                            app.scroll_help_up();
+                        },
+                        _ => {},
+                    },
+                    // Preview mode key processing (fullscreen)
+                    InputMode::Preview { .. } => match key.code {
+                        KeyCode::Char('q') | KeyCode::Esc => {
+                            app.exit_preview();
+                        },
+                        KeyCode::Char('j') | KeyCode::Down => {
+                            app.scroll_preview_down();
+                        },
+                        KeyCode::Char('k') | KeyCode::Up => {
+                            app.scroll_preview_up();
+                        },
+                        _ => {},
+                    },
                 }
             }
         }
 
-        // tickを更新
-        if last_tick.elapsed() >= tick_rate {
-            last_tick = Instant::now();
-        }
     }
 }
