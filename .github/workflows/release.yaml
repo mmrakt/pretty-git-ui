@@ -1,0 +1,32 @@
+# .github/workflows/release.yml
+name: Release and Update Formula
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+
+      - name: Update Homebrew Formula
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          TARBALL_URL="https://github.com/${{ github.repository }}/archive/${GITHUB_REF#refs/tags/}.tar.gz"
+          SHA256=$(curl -sL $TARBALL_URL | shasum -a 256 | cut -d' ' -f1)
+
+          sed -i "s/version \".*\"/version \"$VERSION\"/" formula/index.rb
+          sed -i "s/sha256 \".*\"/sha256 \"$SHA256\"/" formula/index.rb
+
+      - name: Commit Formula Update
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add formula/index.rb
+          git commit -m "bump: update formula to v${GITHUB_REF#refs/tags/v}"
+          git push
