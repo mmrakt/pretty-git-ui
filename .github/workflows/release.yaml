@@ -20,9 +20,8 @@ jobs:
           TARBALL_URL="https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz"
           SHA256=$(curl -sL $TARBALL_URL | shasum -a 256 | cut -d' ' -f1)
 
-          # versionとsha256だけ更新すれば自動でURLも変わる
-          sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/pretty-git-ui.rb
-          sed -i "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Formula/pretty-git-ui.rb
+          sed -i "s/version \".*\"/version \"${VERSION}\"/" formula/index.rb
+          sed -i "s/sha256 \".*\"/sha256 \"${SHA256}\"/" formula/index.rb
 
       - name: Commit Formula Update
         run: |
