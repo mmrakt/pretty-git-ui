@@ -64,7 +64,7 @@ pretty-git-ui
 
 #### Input Modes
 - **Commit/Stash Mode**: `Enter` to submit, `Esc` to cancel
-- **Confirmation Mode**: `y` to confirm, `n` or `Esc` to cancel  
+- **Confirmation Mode**: `y` to confirm, `n` or `Esc` to cancel
 - **Preview Mode**: `j/k` or `↓/↑` to scroll, `q/Esc` to exit
 - **Preview Panel**: `Shift+j/k` to scroll preview, `v` to toggle
 
@@ -156,11 +156,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Homebrew Formula
-
-The Homebrew formula for this project is maintained separately at:
-https://github.com/mmrakt/homebrew-pretty-git-ui
 
 ## Recent Updates (v0.1.1)
 
