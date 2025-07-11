@@ -11,10 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Checkout main branch
+      - name: Checkout master branch
         run: |
-          git checkout main
-          git pull origin main
+          git checkout master
+          git pull origin master
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -34,4 +34,4 @@ jobs:
           git config user.email github-actions@github.com
           git add formula/index.rb
           git commit -m "bump: update formula to v${GITHUB_REF#refs/tags/v}"
-          git push origin main
+          git push origin master
