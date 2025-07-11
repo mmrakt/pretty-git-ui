@@ -10,11 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Checkout master branch
-        run: |
-          git checkout master
-          git pull origin master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          ref: master
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
