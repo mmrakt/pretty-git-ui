@@ -1,5 +1,4 @@
-# .github/workflows/release.yml
-name: Release and Update Formula
+name: Release and Update Homebrew
 on:
   push:
     tags:
@@ -8,15 +7,18 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-          ref: master
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Homebrew Formula
         run: |
@@ -24,13 +26,17 @@ jobs:
           TARBALL_URL="https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz"
           SHA256=$(curl -sL $TARBALL_URL | shasum -a 256 | cut -d' ' -f1)
 
-          sed -i "s/version \".*\"/version \"${VERSION}\"/" formula/index.rb
-          sed -i "s/sha256 \".*\"/sha256 \"${SHA256}\"/" formula/index.rb
+          # Homebrew リポジトリをクローン
+          git clone https://${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/mmrakt/homebrew-pretty-git-ui.git homebrew-tap
+          cd homebrew-tap
 
-      - name: Commit Formula Update
-        run: |
+          # Formulaを更新
+          sed -i "s|url \".*\"|url \"${TARBALL_URL}\"|" Formula/pretty-git-ui.rb
+          sed -i "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Formula/pretty-git-ui.rb
+
+          # コミット・プッシュ
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add formula/index.rb
-          git commit -m "bump: update formula to v${GITHUB_REF#refs/tags/v}"
-          git push origin master
+          git add Formula/pretty-git-ui.rb
+          git commit -m "Update formula to v${VERSION}"
+          git push origin main
